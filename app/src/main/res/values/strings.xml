@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">ZxingTest</string>
+    <string name="path_error_tips">请确保从相册读取数据！</string>
 </resources>
