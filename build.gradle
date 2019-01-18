@@ -9,10 +9,12 @@ buildscript {
         maven{
             url "http://dl.bintray.com/journeyapps/maven"
         }
+        maven{
+            url "http://repo1.maven.org/maven2/com/google/zxing/core/"
+        }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.1.2'
-
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
