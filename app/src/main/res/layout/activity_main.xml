@@ -10,7 +10,16 @@
         android:id="@+id/read"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Read from SDcard"
+        android:text="Read from SD-card"
+        android:textAllCaps="false"
+        android:layout_margin="20dp"/>
+    <Button
+        android:id="@+id/scan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Scan"
+        android:textAllCaps="false"
+        android:layout_toEndOf="@id/read"
         android:layout_margin="20dp"/>
     <TextView
         android:id="@+id/message"

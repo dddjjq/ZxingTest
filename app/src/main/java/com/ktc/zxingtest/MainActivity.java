@@ -30,6 +30,8 @@ import com.google.zxing.FormatException;
 import com.google.zxing.NotFoundException;
 import com.google.zxing.RGBLuminanceSource;
 import com.google.zxing.Result;
+import com.google.zxing.client.android.CaptureActivity;
+import com.google.zxing.client.android.util.Constant;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.QRCodeReader;
 
@@ -49,7 +51,10 @@ import java.util.concurrent.Executors;
 public class MainActivity extends AppCompatActivity {
 
     private Button readButton;
+    private Button scanButton;
     private static final int REQUEST_EXTERNAL_STORAGE = 200;
+    private static final int REQUEST_CAMERA = 300;
+    private static final int REQUEST_SCAN = 400;
     private ProgressDialog mProgress;
     private Bitmap scanBitmap;
     private TextView message;
@@ -67,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initView() {
         readButton = findViewById(R.id.read);
+        scanButton = findViewById(R.id.scan);
         message = findViewById(R.id.message);
     }
 
@@ -81,6 +87,15 @@ public class MainActivity extends AppCompatActivity {
                 startActivityForResult(intent, 100);
             }
         });
+        scanButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                verifyCameraPermissions();
+                Intent intent = new Intent(MainActivity.this,CaptureActivity.class);
+                // config = new ZxingConfig();
+                startActivityForResult(intent,REQUEST_SCAN);
+            }
+        });
     }
 
     @Override
@@ -89,13 +104,12 @@ public class MainActivity extends AppCompatActivity {
 
         if (requestCode == 100 && resultCode == RESULT_OK) {
             handleAlbumPic(data);
-        }
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-
+        }else if (requestCode == REQUEST_SCAN && resultCode == RESULT_OK){
+            if (data != null){
+                String result = data.getStringExtra(Constant.CODED_CONTENT);
+                handleResult(result);
             }
-        }).start();
+        }
     }
 
     /*
@@ -126,15 +140,31 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void verifyCameraPermissions(){
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) { // 申请权限
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.CAMERA},
+                    REQUEST_CAMERA);
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case REQUEST_EXTERNAL_STORAGE:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.d("dingyl", "授权成功");
+                    Log.d("dingyl", "文件读写授权成功");
                 } else {
                     Toast.makeText(this, "授权失败，请在设置中打开文件读写权限", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            case REQUEST_CAMERA:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d("dingyl", "相机授权成功");
+                } else {
+                    Toast.makeText(this, "授权失败，请在设置中打开相机权限", Toast.LENGTH_SHORT).show();
                 }
                 break;
         }
@@ -164,9 +194,7 @@ public class MainActivity extends AppCompatActivity {
                     resultIntent.putExtras(bundle);
                     MainActivity.this.setResult(RESULT_OK, resultIntent);
                     finish();*/
-                    message.setText(result.getText());
-                    executorService.execute(saveMessage);
-                    executorService.execute(sendMessage);
+                    handleResult(result.getText());
                 } else {
                     Toast.makeText(MainActivity.this, "识别失败", Toast.LENGTH_SHORT).show();
                 }
@@ -236,7 +264,7 @@ public class MainActivity extends AppCompatActivity {
             try{
                 /*final BufferedReader br = new BufferedReader(
                         new InputStreamReader(socket.getInputStream()));*/
-                Socket socket = new Socket("192.168.47.80",2001);
+                Socket socket = new Socket("192.168.1.2",2001);
                 socket.setSoTimeout(0);
                 OutputStream outputStream = socket.getOutputStream();
                 final BufferedReader br = new BufferedReader(
@@ -261,33 +289,10 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private class ReceiveThread extends Thread{
-        Socket socket;
-        ReceiveThread(Socket socket){
-            this.socket = socket;
-        }
-        @Override
-        public void run() {
-            try{
-                while (!isStop){
-                    Log.d("dingyl","1111");
-                    InputStream inputStream = socket.getInputStream();
-                    byte[] buffer = new byte[1024];
-                    int length;
-                    StringBuilder stringBuilder = new StringBuilder();
-                    Log.d("dingyl","2222");
-                    while ((length = inputStream.read(buffer))!= -1){
-                        stringBuilder.append(new String(buffer,0,length));
-                    }
-                    Log.d("dingyl","4444");
-                    Log.d("dingyl","socket result : " + stringBuilder.toString());
-                    inputStream.close();
-                }
-            }catch (IOException e){
-                Log.d("dingyl","exception : " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
+    private void handleResult(String result){
+        message.setText(result);
+        executorService.execute(saveMessage);
+        executorService.execute(sendMessage);
     }
 
     static class MainHandler extends Handler{
